@@ -3,434 +3,258 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MessengerBot — Auto Reply Platform</title>
+<title>MessengerBot</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-:root {
-  --bg: #0A0A0F;
-  --surface: #111118;
-  --surface2: #18181F;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --accent: #4F6EF7;
-  --accent2: #7C3AED;
-  --green: #22C55E;
-  --red: #EF4444;
-  --text: #F0F0FF;
-  --muted: #6B6B80;
-  --muted2: #9B9BAA;
-  --font-display: 'Syne', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --radius: 12px;
-  --radius-sm: 8px;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
-input,textarea,button { font-family: var(--font-body); }
-
-/* LOADING */
-#loading {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 999;
-  flex-direction: column; gap: 16px;
-}
-.spinner {
-  width: 36px; height: 36px;
-  border: 3px solid var(--border2);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 14px; color: var(--muted2); }
-
-/* AUTH */
-.auth-screen {
-  min-height: 100vh; display: none;
-  align-items: center; justify-content: center;
-  padding: 2rem; position: relative; overflow: hidden;
-}
-.auth-screen.active { display: flex; }
-.auth-screen::before {
-  content: ''; position: absolute;
-  width: 600px; height: 600px;
-  background: radial-gradient(circle, rgba(79,110,247,0.12) 0%, transparent 70%);
-  top: -200px; left: -200px; pointer-events: none;
-}
-.auth-box {
-  width: 100%; max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: 20px; padding: 2.5rem;
-  position: relative; z-index: 1;
-}
-.auth-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; }
-.auth-logo-icon {
-  width: 38px; height: 38px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;
-}
-.auth-logo-name { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
-.auth-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.5px; }
-.auth-sub { font-size: 14px; color: var(--muted2); margin-bottom: 2rem; line-height: 1.5; }
-.field { margin-bottom: 1rem; }
-.field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-.field input {
-  width: 100%; background: var(--surface2);
-  border: 1px solid var(--border2); border-radius: var(--radius-sm);
-  padding: 11px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s;
-}
-.field input:focus { border-color: var(--accent); }
-.field input::placeholder { color: var(--muted); }
-.field textarea {
-  width: 100%; background: var(--surface2);
-  border: 1px solid var(--border2); border-radius: var(--radius-sm);
-  padding: 11px 14px; color: var(--text); font-size: 14px; outline: none;
-  resize: vertical; min-height: 80px; line-height: 1.5; transition: border-color 0.15s;
-}
-.field textarea:focus { border-color: var(--accent); }
-.field textarea::placeholder { color: var(--muted); }
-.btn-primary {
-  width: 100%; padding: 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none; border-radius: var(--radius-sm);
-  color: white; font-size: 14px; font-weight: 600; cursor: pointer;
-  margin-top: 0.5rem; transition: opacity 0.15s, transform 0.1s;
-}
-.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-.auth-switch { text-align: center; margin-top: 1.25rem; font-size: 13px; color: var(--muted2); }
-.auth-switch button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 13px; font-weight: 500; text-decoration: underline; }
-.msg-box { border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: none; }
-.msg-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #FCA5A5; }
-.msg-ok { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #86EFAC; }
-
-/* DASHBOARD */
-#dash { display: none; min-height: 100vh; }
-.sidebar {
-  position: fixed; top: 0; left: 0; bottom: 0; width: 220px;
-  background: var(--surface); border-right: 1px solid var(--border);
-  padding: 1.5rem 1rem; display: flex; flex-direction: column; z-index: 100;
-}
-.sidebar-logo { display: flex; align-items: center; gap: 8px; padding: 0 0.5rem; margin-bottom: 2rem; }
-.sidebar-logo-icon {
-  width: 30px; height: 30px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px;
-}
-.sidebar-logo-name { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
-.nav-section { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 0.5rem; margin-bottom: 0.5rem; margin-top: 1rem; }
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 500; color: var(--muted2);
-  cursor: pointer; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
-}
-.nav-item:hover { background: var(--surface2); color: var(--text); }
-.nav-item.active { background: rgba(79,110,247,0.15); color: var(--accent); }
-.nav-item .icon { font-size: 16px; width: 18px; text-align: center; }
-.sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding-top: 1rem; }
-.user-chip { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
-.user-avatar {
-  width: 28px; height: 28px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
-}
-.user-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.signout-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 4px; transition: color 0.15s; }
-.signout-btn:hover { color: var(--red); }
-
-/* MAIN */
-.main { margin-left: 220px; padding: 2rem; min-height: 100vh; }
-.page { display: none; }
-.page.active { display: block; }
-.page-header { margin-bottom: 2rem; }
-.page-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; }
-.page-sub { font-size: 14px; color: var(--muted2); }
-
-/* Stats */
-.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
-.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; }
-.stat-label { font-size: 12px; color: var(--muted2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-.stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; }
-.stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-/* Bot status */
-.bot-status-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;
-}
-.bot-status-left { display: flex; align-items: center; gap: 12px; }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.status-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
-.status-dot.off { background: var(--muted); }
-@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-.status-name { font-weight: 600; font-size: 15px; }
-.status-sub { font-size: 12px; color: var(--muted2); margin-top: 2px; }
-.toggle { position: relative; width: 44px; height: 24px; cursor: pointer; display: inline-block; }
-.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-.toggle-track { position: absolute; inset: 0; background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px; transition: all 0.2s; }
-.toggle input:checked ~ .toggle-track { background: var(--green); border-color: var(--green); }
-.toggle-thumb { position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: transform 0.2s; pointer-events: none; }
-.toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
-
-/* Rules */
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-.section-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
-.btn-add {
-  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
-  background: rgba(79,110,247,0.15); border: 1px solid rgba(79,110,247,0.3);
-  border-radius: var(--radius-sm); color: var(--accent); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s;
-}
-.btn-add:hover { background: rgba(79,110,247,0.25); }
-.rule-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 1rem 1.25rem; margin-bottom: 0.5rem; display: flex; align-items: flex-start; gap: 12px;
-}
-.rule-body { flex: 1; min-width: 0; }
-.rule-trigger {
-  display: inline-block; background: rgba(79,110,247,0.1); border: 1px solid rgba(79,110,247,0.2);
-  border-radius: 6px; padding: 2px 8px; font-size: 11px; font-family: monospace; color: #93A8FF; margin-bottom: 6px;
-}
-.rule-reply { font-size: 13px; color: var(--muted2); line-height: 1.5; }
-.rule-del {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 6px 10px; color: var(--muted); cursor: pointer; font-size: 13px; transition: all 0.15s; flex-shrink: 0;
-}
-.rule-del:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
-.empty-state {
-  text-align: center; padding: 3rem; color: var(--muted); font-size: 14px;
-  background: var(--surface); border: 1px dashed var(--border2); border-radius: var(--radius);
-}
-.add-form {
-  background: var(--surface2); border: 1px solid var(--border2);
-  border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; display: none;
-}
-.add-form.open { display: block; }
-.form-row { display: flex; gap: 8px; margin-top: 0.75rem; }
-.btn-save {
-  padding: 9px 18px; background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none; border-radius: var(--radius-sm); color: white; font-size: 13px; font-weight: 600; cursor: pointer;
-}
-.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-cancel { padding: 9px 18px; background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm); color: var(--muted2); font-size: 13px; cursor: pointer; }
-
-/* Log */
-.log-item {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 1rem 1.25rem; margin-bottom: 0.5rem; display: flex; gap: 12px;
-}
-.log-time { font-size: 11px; color: var(--muted); font-family: monospace; flex-shrink: 0; margin-top: 2px; }
-.log-body { flex: 1; }
-.log-sender { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.log-text { font-size: 13px; color: var(--muted2); }
-.log-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; align-self: flex-start; }
-.log-badge.replied { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
-.log-badge.missed { background: rgba(107,107,128,0.1); color: var(--muted2); border: 1px solid var(--border); }
-
-/* Setup */
-.setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem; }
-.setup-card h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 0.25rem; }
-.setup-card p { font-size: 13px; color: var(--muted2); margin-bottom: 1.25rem; line-height: 1.6; }
-.connected-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
-  border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; color: var(--green); margin-left: 10px;
-}
-.webhook-box {
-  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 12px 14px; font-family: monospace; font-size: 12px; color: var(--muted2); word-break: break-all; line-height: 1.6;
-}
-.copy-btn {
-  display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px;
-  background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm);
-  color: var(--muted2); font-size: 12px; cursor: pointer; margin-top: 8px; transition: all 0.15s;
-}
-.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-/* Billing */
-.plan-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
-.plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; position: relative; }
-.plan-card.featured { border-color: var(--accent); background: rgba(79,110,247,0.05); }
-.plan-badge {
-  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: white; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap;
-}
-.plan-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.plan-price { font-family: var(--font-display); font-size: 30px; font-weight: 800; margin: 0.75rem 0; }
-.plan-price span { font-size: 14px; font-weight: 400; color: var(--muted2); }
-.plan-features { list-style: none; margin-bottom: 1.25rem; }
-.plan-features li { font-size: 13px; color: var(--muted2); padding: 4px 0; display: flex; align-items: center; gap: 7px; }
-.plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; font-size: 12px; }
-.btn-plan { width: 100%; padding: 10px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-.btn-plan-outline { background: none; border: 1px solid var(--border2); color: var(--text); }
-.btn-plan-outline:hover { border-color: var(--accent); color: var(--accent); }
-.btn-plan-filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: white; }
+:root{--bg:#0A0A0F;--surface:#111118;--surface2:#18181F;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--accent:#4F6EF7;--accent2:#7C3AED;--green:#22C55E;--red:#EF4444;--text:#F0F0FF;--muted:#6B6B80;--muted2:#9B9BAA;--fd:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--r:12px;--rs:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+input,textarea,button{font-family:var(--fb)}
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lt{font-size:14px;color:var(--muted2)}
+.auth{min-height:100vh;display:none;align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden}
+.auth.active{display:flex}
+.auth::before{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(79,110,247,0.12) 0%,transparent 70%);top:-200px;left:-200px;pointer-events:none}
+.abox{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:2.5rem;position:relative;z-index:1}
+.alogo{display:flex;align-items:center;gap:10px;margin-bottom:2rem}
+.alogo-i{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.alogo-n{font-family:var(--fd);font-size:18px;font-weight:700}
+.atitle{font-family:var(--fd);font-size:26px;font-weight:700;margin-bottom:6px;letter-spacing:-.5px}
+.asub{font-size:14px;color:var(--muted2);margin-bottom:2rem;line-height:1.5}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.field input,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5}
+.btnp{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--rs);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:.5rem;transition:opacity .15s,transform .1s}
+.btnp:hover{opacity:.9;transform:translateY(-1px)}
+.btnp:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.aswitch{text-align:center;margin-top:1.25rem;font-size:13px;color:var(--muted2)}
+.aswitch button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;font-weight:500;text-decoration:underline}
+.mbox{border-radius:var(--rs);padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none}
+.merr{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#FCA5A5}
+.mok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);color:#86EFAC}
+#dash{display:none;min-height:100vh}
+.sb{position:fixed;top:0;left:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;z-index:100}
+.sblogo{display:flex;align-items:center;gap:8px;padding:0 .5rem;margin-bottom:2rem}
+.sblogo-i{width:30px;height:30px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.sblogo-n{font-family:var(--fd);font-size:15px;font-weight:700}
+.nvsec{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:0 .5rem;margin-bottom:.5rem;margin-top:1rem}
+.nvi{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rs);font-size:13px;font-weight:500;color:var(--muted2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nvi:hover{background:var(--surface2);color:var(--text)}
+.nvi.active{background:rgba(79,110,247,.15);color:var(--accent)}
+.nvi .ic{font-size:16px;width:18px;text-align:center}
+.sbfoot{margin-top:auto;border-top:1px solid var(--border);padding-top:1rem}
+.uchip{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.uav{width:28px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.uname{font-size:12px;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sobtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px;transition:color .15s}
+.sobtn:hover{color:var(--red)}
+.main{margin-left:220px;padding:2rem;min-height:100vh}
+.pg{display:none}
+.pg.active{display:block}
+.pghd{margin-bottom:2rem}
+.pgtitle{font-family:var(--fd);font-size:24px;font-weight:700;letter-spacing:-.3px;margin-bottom:4px}
+.pgsub{font-size:14px;color:var(--muted2)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem}
+.slbl{font-size:12px;color:var(--muted2);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.sval{font-family:var(--fd);font-size:28px;font-weight:700;line-height:1}
+.ssub{font-size:12px;color:var(--muted);margin-top:4px}
+.bsc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.bsl{display:flex;align-items:center;gap:12px}
+.sdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sdot.on{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+.sdot.off{background:var(--muted)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sname{font-weight:600;font-size:15px}
+.ssub2{font-size:12px;color:var(--muted2);margin-top:2px}
+.tgl{position:relative;width:44px;height:24px;cursor:pointer;display:inline-block}
+.tgl input{opacity:0;width:0;height:0;position:absolute}
+.tgltr{position:absolute;inset:0;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;transition:all .2s}
+.tgl input:checked ~ .tgltr{background:var(--green);border-color:var(--green)}
+.tglth{position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;pointer-events:none}
+.tgl input:checked ~ .tglth{transform:translateX(20px)}
+.sechd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.sectitle{font-family:var(--fd);font-size:16px;font-weight:600}
+.btnadd{display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(79,110,247,.15);border:1px solid rgba(79,110,247,.3);border-radius:var(--rs);color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btnadd:hover{background:rgba(79,110,247,.25)}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:.5rem;display:flex;align-items:flex-start;gap:12px}
+.rb{flex:1;min-width:0}
+.rtrig{display:inline-block;background:rgba(79,110,247,.1);border:1px solid rgba(79,110,247,.2);border-radius:6px;padding:2px 8px;font-size:11px;font-family:monospace;color:#93A8FF;margin-bottom:6px}
+.rrep{font-size:13px;color:var(--muted2);line-height:1.5}
+.rdel{background:none;border:1px solid var(--border);border-radius:var(--rs);padding:6px 10px;color:var(--muted);cursor:pointer;font-size:13px;transition:all .15s;flex-shrink:0}
+.rdel:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.08)}
+.empty{text-align:center;padding:3rem;color:var(--muted);font-size:14px;background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r)}
+.aform{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;display:none}
+.aform.open{display:block}
+.frow{display:flex;gap:8px;margin-top:.75rem}
+.btnsave{padding:9px 18px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--rs);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.btnsave:disabled{opacity:.5;cursor:not-allowed}
+.btncancel{padding:9px 18px;background:none;border:1px solid var(--border2);border-radius:var(--rs);color:var(--muted2);font-size:13px;cursor:pointer}
+.li{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:.5rem;display:flex;gap:12px}
+.ltime{font-size:11px;color:var(--muted);font-family:monospace;flex-shrink:0;margin-top:2px}
+.lbody{flex:1}
+.lsend{font-size:13px;font-weight:600;margin-bottom:3px}
+.ltxt{font-size:13px;color:var(--muted2)}
+.lbadge{flex-shrink:0;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;align-self:flex-start}
+.lbadge.replied{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.lbadge.missed{background:rgba(107,107,128,.1);color:var(--muted2);border:1px solid var(--border)}
+.setcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1rem}
+.setcard h3{font-family:var(--fd);font-size:15px;font-weight:600;margin-bottom:.25rem}
+.setcard p{font-size:13px;color:var(--muted2);margin-bottom:1.25rem;line-height:1.6}
+.cbadge{display:inline-flex;align-items:center;gap:5px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--green);margin-left:10px}
+.wbox{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;font-family:monospace;font-size:12px;color:var(--muted2);word-break:break-all;line-height:1.6}
+.cpbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--rs);color:var(--muted2);font-size:12px;cursor:pointer;margin-top:8px;transition:all .15s}
+.cpbtn:hover{border-color:var(--accent);color:var(--accent)}
+.plancards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.plancard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.5rem;position:relative}
+.plancard.featured{border-color:var(--accent);background:rgba(79,110,247,.05)}
+.planbadge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.planname{font-family:var(--fd);font-size:16px;font-weight:700;margin-bottom:4px}
+.planprice{font-family:var(--fd);font-size:30px;font-weight:800;margin:.75rem 0}
+.planprice span{font-size:14px;font-weight:400;color:var(--muted2)}
+.planfeats{list-style:none;margin-bottom:1.25rem}
+.planfeats li{font-size:13px;color:var(--muted2);padding:4px 0;display:flex;align-items:center;gap:7px}
+.planfeats li::before{content:'✓';color:var(--green);font-weight:700;font-size:12px}
+.btnplan{width:100%;padding:10px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.btnplan-o{background:none;border:1px solid var(--border2);color:var(--text)}
+.btnplan-o:hover{border-color:var(--accent);color:var(--accent)}
+.btnplan-f{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff}
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading">
-  <div class="spinner"></div>
-  <div class="loading-text">Loading...</div>
-</div>
+<div id="loading"><div class="spinner"></div><div class="lt">Loading...</div></div>
 
 <!-- LOGIN -->
-<div id="screen-login" class="auth-screen">
-  <div class="auth-box">
-    <div class="auth-logo"><div class="auth-logo-icon">💬</div><div class="auth-logo-name">MessengerBot</div></div>
-    <div class="auth-title">Welcome back</div>
-    <div class="auth-sub">Sign in to manage your auto-reply bot</div>
-    <div class="msg-box msg-err" id="login-err"></div>
+<div id="screen-login" class="auth">
+  <div class="abox">
+    <div class="alogo"><div class="alogo-i">💬</div><div class="alogo-n">MessengerBot</div></div>
+    <div class="atitle">Welcome back</div>
+    <div class="asub">Sign in to manage your auto-reply bot</div>
+    <div class="mbox merr" id="login-err"></div>
     <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
-    <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
-    <div class="auth-switch">No account? <button onclick="showScreen('signup')">Create one free</button></div>
+    <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+    <button class="btnp" id="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="aswitch">No account? <button onclick="showScreen('signup')">Create one free</button></div>
   </div>
 </div>
 
 <!-- SIGNUP -->
-<div id="screen-signup" class="auth-screen">
-  <div class="auth-box">
-    <div class="auth-logo"><div class="auth-logo-icon">💬</div><div class="auth-logo-name">MessengerBot</div></div>
-    <div class="auth-title">Create account</div>
-    <div class="auth-sub">Start automating your Messenger replies today</div>
-    <div class="msg-box msg-err" id="reg-err"></div>
-    <div class="msg-box msg-ok" id="reg-ok"></div>
+<div id="screen-signup" class="auth">
+  <div class="abox">
+    <div class="alogo"><div class="alogo-i">💬</div><div class="alogo-n">MessengerBot</div></div>
+    <div class="atitle">Create account</div>
+    <div class="asub">Start automating your Messenger replies today</div>
+    <div class="mbox merr" id="reg-err"></div>
+    <div class="mbox mok" id="reg-ok"></div>
     <div class="field"><label>Full name</label><input type="text" id="reg-name" placeholder="Jeffrey Tan"></div>
     <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
     <div class="field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min. 6 characters"></div>
-    <button class="btn-primary" id="reg-btn" onclick="doRegister()">Create account</button>
-    <div class="auth-switch">Already have an account? <button onclick="showScreen('login')">Sign in</button></div>
+    <button class="btnp" id="reg-btn" onclick="doRegister()">Create account</button>
+    <div class="aswitch">Already have an account? <button onclick="showScreen('login')">Sign in</button></div>
   </div>
 </div>
 
 <!-- DASHBOARD -->
 <div id="dash">
-  <div class="sidebar">
-    <div class="sidebar-logo"><div class="sidebar-logo-icon">💬</div><div class="sidebar-logo-name">MessengerBot</div></div>
-    <div class="nav-section">Main</div>
-    <button class="nav-item active" onclick="switchPage('overview',this)"><span class="icon">⚡</span> Overview</button>
-    <button class="nav-item" onclick="switchPage('rules',this)"><span class="icon">📋</span> Reply Rules</button>
-    <button class="nav-item" onclick="switchPage('log',this)"><span class="icon">📊</span> Activity Log</button>
-    <div class="nav-section">Settings</div>
-    <button class="nav-item" onclick="switchPage('setup',this)"><span class="icon">🔌</span> Page Setup</button>
-    <button class="nav-item" onclick="switchPage('billing',this)"><span class="icon">💳</span> Billing</button>
-    <div class="sidebar-footer">
-      <div class="user-chip">
-        <div class="user-avatar" id="user-avatar">J</div>
-        <div class="user-name" id="user-name-display">...</div>
-        <button class="signout-btn" onclick="doLogout()" title="Sign out">↪</button>
+  <div class="sb">
+    <div class="sblogo"><div class="sblogo-i">💬</div><div class="sblogo-n">MessengerBot</div></div>
+    <div class="nvsec">Main</div>
+    <button class="nvi active" onclick="switchPage('overview',this)"><span class="ic">⚡</span> Overview</button>
+    <button class="nvi" onclick="switchPage('rules',this)"><span class="ic">📋</span> Reply Rules</button>
+    <button class="nvi" onclick="switchPage('log',this)"><span class="ic">📊</span> Activity Log</button>
+    <div class="nvsec">Settings</div>
+    <button class="nvi" onclick="switchPage('setup',this)"><span class="ic">🔌</span> Page Setup</button>
+    <button class="nvi" onclick="switchPage('billing',this)"><span class="ic">💳</span> Billing</button>
+    <div class="sbfoot">
+      <div class="uchip">
+        <div class="uav" id="user-avatar">J</div>
+        <div class="uname" id="user-name-display">...</div>
+        <button class="sobtn" onclick="doLogout()" title="Sign out">↪</button>
       </div>
     </div>
   </div>
   <div class="main">
 
     <!-- OVERVIEW -->
-    <div id="page-overview" class="page active">
-      <div class="page-header"><div class="page-title">Overview</div><div class="page-sub">Your bot's performance at a glance</div></div>
-      <div class="stats-row">
-        <div class="stat-card"><div class="stat-label">Total Replied</div><div class="stat-value" id="stat-replied">—</div><div class="stat-sub">All time</div></div>
-        <div class="stat-card"><div class="stat-label">Today</div><div class="stat-value" id="stat-today">—</div><div class="stat-sub">Replies sent today</div></div>
-        <div class="stat-card"><div class="stat-label">Active Rules</div><div class="stat-value" id="stat-rules">—</div><div class="stat-sub">Auto-reply triggers</div></div>
+    <div id="page-overview" class="pg active">
+      <div class="pghd"><div class="pgtitle">Overview</div><div class="pgsub">Your bot performance at a glance</div></div>
+      <div class="stats">
+        <div class="sc"><div class="slbl">Total Replied</div><div class="sval" id="stat-replied">—</div><div class="ssub">All time</div></div>
+        <div class="sc"><div class="slbl">Today</div><div class="sval" id="stat-today">—</div><div class="ssub">Replies sent today</div></div>
+        <div class="sc"><div class="slbl">Active Rules</div><div class="sval" id="stat-rules">—</div><div class="ssub">Auto-reply triggers</div></div>
       </div>
-      <div class="bot-status-card">
-        <div class="bot-status-left">
-          <div class="status-dot off" id="status-dot"></div>
-          <div><div class="status-name" id="status-name">Loading...</div><div class="status-sub" id="status-sub">Fetching bot status</div></div>
+      <div class="bsc">
+        <div class="bsl">
+          <div class="sdot off" id="status-dot"></div>
+          <div><div class="sname" id="status-name">Loading...</div><div class="ssub2" id="status-sub">Fetching bot status</div></div>
         </div>
-        <label class="toggle">
-          <input type="checkbox" id="bot-toggle" onchange="toggleBot(this)">
-          <div class="toggle-track"></div><div class="toggle-thumb"></div>
-        </label>
+        <label class="tgl"><input type="checkbox" id="bot-toggle" onchange="toggleBot(this)"><div class="tgltr"></div><div class="tglth"></div></label>
       </div>
-      <div class="section-header"><div class="section-title">Recent activity</div></div>
-      <div id="overview-log"><div class="empty-state">Loading activity...</div></div>
+      <div class="sechd"><div class="sectitle">Recent activity</div></div>
+      <div id="overview-log"><div class="empty">Loading...</div></div>
     </div>
 
     <!-- RULES -->
-    <div id="page-rules" class="page">
-      <div class="page-header"><div class="page-title">Reply Rules</div><div class="page-sub">Set keywords and auto-reply messages</div></div>
-      <div class="section-header">
-        <div class="section-title">Your rules</div>
-        <button class="btn-add" onclick="toggleAddForm()">＋ Add rule</button>
-      </div>
-      <div class="add-form" id="add-form">
-        <div class="field">
-          <label>Trigger keywords <span style="font-weight:400;text-transform:none;letter-spacing:0">(comma-separated, or * for any message)</span></label>
-          <input type="text" id="new-trigger" placeholder="price, cost, how much">
-        </div>
+    <div id="page-rules" class="pg">
+      <div class="pghd"><div class="pgtitle">Reply Rules</div><div class="pgsub">Set keywords and auto-reply messages</div></div>
+      <div class="sechd"><div class="sectitle">Your rules</div><button class="btnadd" onclick="toggleAddForm()">+ Add rule</button></div>
+      <div class="aform" id="add-form">
+        <div class="field"><label>Trigger keywords (comma-separated, or * for any message)</label><input type="text" id="new-trigger" placeholder="price, cost, how much"></div>
         <div class="field"><label>Auto-reply message</label><textarea id="new-reply" placeholder="Our prices start from RM 15..."></textarea></div>
-        <div class="form-row">
-          <button class="btn-save" id="save-rule-btn" onclick="saveRule()">Save rule</button>
-          <button class="btn-cancel" onclick="toggleAddForm()">Cancel</button>
+        <div class="frow">
+          <button class="btnsave" id="save-rule-btn" onclick="saveRule()">Save rule</button>
+          <button class="btncancel" onclick="toggleAddForm()">Cancel</button>
         </div>
       </div>
-      <div id="rules-list"><div class="empty-state">Loading rules...</div></div>
+      <div id="rules-list"><div class="empty">Loading rules...</div></div>
     </div>
 
     <!-- LOG -->
-    <div id="page-log" class="page">
-      <div class="page-header"><div class="page-title">Activity Log</div><div class="page-sub">Every message received and reply sent</div></div>
-      <div id="log-list"><div class="empty-state">Loading activity...</div></div>
+    <div id="page-log" class="pg">
+      <div class="pghd"><div class="pgtitle">Activity Log</div><div class="pgsub">Every message received and reply sent</div></div>
+      <div id="log-list"><div class="empty">Loading activity...</div></div>
     </div>
 
     <!-- SETUP -->
-    <div id="page-setup" class="page">
-      <div class="page-header"><div class="page-title">Page Setup</div><div class="page-sub">Your Facebook page connection details</div></div>
-      <div class="setup-card">
-        <h3>Facebook page <span class="connected-badge" id="page-badge">Checking...</span></h3>
-        <p>Your Facebook page is connected to the webhook server. To update your page access token, edit the row directly in your Supabase <code>facebook_pages</code> table.</p>
+    <div id="page-setup" class="pg">
+      <div class="pghd"><div class="pgtitle">Page Setup</div><div class="pgsub">Your Facebook page connection details</div></div>
+      <div class="setcard">
+        <h3>Facebook page <span class="cbadge" id="page-badge">Checking...</span></h3>
+        <p>Your Facebook page is connected to the webhook server. To update your page access token, edit the row in your Supabase facebook_pages table.</p>
         <div style="font-size:13px;color:var(--muted2)">Connected page: <strong style="color:var(--text)" id="page-name-display">Loading...</strong></div>
       </div>
-      <div class="setup-card">
+      <div class="setcard">
         <h3>Webhook endpoint</h3>
-        <p>This URL is registered in Meta Developer → Messenger API Settings. Facebook sends all messages here.</p>
-        <div class="webhook-box" id="webhook-url-display">https://auto-reply-bot-jeffrey-production.up.railway.app/webhook</div>
-        <button class="copy-btn" onclick="copyWebhook()">⎘ Copy URL</button>
+        <p>This URL is registered in Meta Developer. Facebook sends all messages here.</p>
+        <div class="wbox">https://auto-reply-bot-jeffrey-production.up.railway.app/webhook</div>
+        <button class="cpbtn" onclick="copyWebhook()">Copy URL</button>
       </div>
-      <div class="setup-card">
+      <div class="setcard">
         <h3>Completed setup steps</h3>
-        <p style="margin-bottom:0.5rem;color:var(--muted2);font-size:13px">All systems are operational.</p>
-        <div style="font-size:13px;line-height:2.2;color:var(--muted2)">
+        <div style="font-size:13px;line-height:2.2;color:var(--muted2);margin-top:.5rem">
           ✅ Supabase database deployed<br>
           ✅ Railway webhook server live<br>
           ✅ Meta Developer App created<br>
           ✅ Facebook page connected<br>
-          ✅ Webhook verified & subscribed
+          ✅ Webhook verified and subscribed
         </div>
       </div>
     </div>
 
     <!-- BILLING -->
-    <div id="page-billing" class="page">
-      <div class="page-header"><div class="page-title">Billing</div><div class="page-sub">Choose a plan for your business</div></div>
-      <div class="plan-cards">
-        <div class="plan-card">
-          <div class="plan-name">Free</div>
-          <div class="plan-price">RM 0 <span>/month</span></div>
-          <ul class="plan-features"><li>1 Facebook page</li><li>5 reply rules</li><li>100 replies/month</li><li>7-day activity log</li></ul>
-          <button class="btn-plan btn-plan-outline">Current plan</button>
-        </div>
-        <div class="plan-card featured">
-          <div class="plan-badge">Most Popular</div>
-          <div class="plan-name">Starter</div>
-          <div class="plan-price">RM 49 <span>/month</span></div>
-          <ul class="plan-features"><li>3 Facebook pages</li><li>Unlimited rules</li><li>Unlimited replies</li><li>AI-powered replies</li><li>30-day activity log</li></ul>
-          <button class="btn-plan btn-plan-filled">Upgrade →</button>
-        </div>
-        <div class="plan-card">
-          <div class="plan-name">Pro</div>
-          <div class="plan-price">RM 99 <span>/month</span></div>
-          <ul class="plan-features"><li>Unlimited pages</li><li>Everything in Starter</li><li>Priority AI replies</li><li>Analytics dashboard</li><li>White-label option</li><li>Priority support</li></ul>
-          <button class="btn-plan btn-plan-outline">Upgrade →</button>
-        </div>
+    <div id="page-billing" class="pg">
+      <div class="pghd"><div class="pgtitle">Billing</div><div class="pgsub">Choose a plan for your business</div></div>
+      <div class="plancards">
+        <div class="plancard"><div class="planname">Free</div><div class="planprice">RM 0 <span>/month</span></div><ul class="planfeats"><li>1 Facebook page</li><li>5 reply rules</li><li>100 replies/month</li><li>7-day activity log</li></ul><button class="btnplan btnplan-o">Current plan</button></div>
+        <div class="plancard featured"><div class="planbadge">Most Popular</div><div class="planname">Starter</div><div class="planprice">RM 49 <span>/month</span></div><ul class="planfeats"><li>3 Facebook pages</li><li>Unlimited rules</li><li>Unlimited replies</li><li>AI-powered replies</li><li>30-day activity log</li></ul><button class="btnplan btnplan-f">Upgrade</button></div>
+        <div class="plancard"><div class="planname">Pro</div><div class="planprice">RM 99 <span>/month</span></div><ul class="planfeats"><li>Unlimited pages</li><li>Everything in Starter</li><li>Priority AI replies</li><li>Analytics dashboard</li><li>White-label option</li><li>Priority support</li></ul><button class="btnplan btnplan-o">Upgrade</button></div>
       </div>
     </div>
 
@@ -438,79 +262,92 @@ input,textarea,button { font-family: var(--font-body); }
 </div>
 
 <script>
-// ── SUPABASE CONFIG — replace with your real values ──
-const SUPABASE_URL = 'https://fiipthqikyajxyqtmncm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpaXB0aHFpa3lhanh5cXRtbmNtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3NTExMzgsImV4cCI6MjA5NDMyNzEzOH0.YcloJvw9j_O5JUB5ikkWghI1jIeQ5iKsxf5tkyuq9j0';
+var SUPABASE_URL = 'https://fiipthqikyajxyqtmncm.supabase.co';
+var SUPABASE_ANON_KEY = 'REPLACE_WITH_YOUR_ANON_KEY';
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var currentUser = null;
+var merchantId = null;
 
-let currentUser = null;
-let merchantId = null;
-
-// ── INIT ──
 async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    await loadDash();
-  } else {
+  try {
+    var res = await sb.auth.getSession();
+    var session = res.data.session;
+    if (session) {
+      currentUser = session.user;
+      await loadDash();
+    } else {
+      showScreen('login');
+    }
+  } catch(e) {
+    console.error('Init error:', e);
     showScreen('login');
   }
   document.getElementById('loading').style.display = 'none';
 
-  // Listen for auth changes
-  sb.auth.onAuthStateChange(async (event, session) => {
+  sb.auth.onAuthStateChange(async function(event, session) {
     if (event === 'SIGNED_IN' && session) {
       currentUser = session.user;
       await loadDash();
     } else if (event === 'SIGNED_OUT') {
-      currentUser = null; merchantId = null;
+      currentUser = null;
+      merchantId = null;
       showScreen('login');
     }
   });
 }
 
 function showScreen(name) {
-  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.auth').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById('dash').style.display = 'none';
-  const el = document.getElementById('screen-' + name);
+  var el = document.getElementById('screen-' + name);
   if (el) el.classList.add('active');
 }
 
-// ── AUTH ──
 async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-err');
-  const btn = document.getElementById('login-btn');
+  var email = document.getElementById('login-email').value.trim();
+  var pass = document.getElementById('login-pass').value;
+  var err = document.getElementById('login-err');
+  var btn = document.getElementById('login-btn');
   err.style.display = 'none';
-  btn.disabled = true; btn.textContent = 'Signing in...';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Sign in';
-  if (error) { err.textContent = error.message; err.style.display = 'block'; }
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  var res = await sb.auth.signInWithPassword({ email: email, password: pass });
+  btn.disabled = false;
+  btn.textContent = 'Sign in';
+  if (res.error) {
+    err.textContent = res.error.message;
+    err.style.display = 'block';
+  }
 }
 
 async function doRegister() {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-pass').value;
-  const err = document.getElementById('reg-err');
-  const ok = document.getElementById('reg-ok');
-  const btn = document.getElementById('reg-btn');
-  err.style.display = 'none'; ok.style.display = 'none';
+  var name = document.getElementById('reg-name').value.trim();
+  var email = document.getElementById('reg-email').value.trim();
+  var pass = document.getElementById('reg-pass').value;
+  var err = document.getElementById('reg-err');
+  var ok = document.getElementById('reg-ok');
+  var btn = document.getElementById('reg-btn');
+  err.style.display = 'none';
+  ok.style.display = 'none';
   if (!name || !email || pass.length < 6) {
     err.textContent = 'Please fill in all fields (password min 6 chars).';
-    err.style.display = 'block'; return;
+    err.style.display = 'block';
+    return;
   }
-  btn.disabled = true; btn.textContent = 'Creating account...';
-  const { error } = await sb.auth.signUp({
-    email, password: pass,
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+  var res = await sb.auth.signUp({
+    email: email,
+    password: pass,
     options: { data: { full_name: name } }
   });
-  btn.disabled = false; btn.textContent = 'Create account';
-  if (error) { err.textContent = error.message; err.style.display = 'block'; }
-  else {
+  btn.disabled = false;
+  btn.textContent = 'Create account';
+  if (res.error) {
+    err.textContent = res.error.message;
+    err.style.display = 'block';
+  } else {
     ok.textContent = 'Account created! Check your email to confirm, then sign in.';
     ok.style.display = 'block';
   }
@@ -520,114 +357,74 @@ async function doLogout() {
   await sb.auth.signOut();
 }
 
-// ── DASHBOARD ──
 async function loadDash() {
-  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.auth').forEach(function(s) { s.classList.remove('active'); });
   document.getElementById('dash').style.display = 'block';
 
-  // Get merchant row
-  const { data: merchant } = await sb
-    .from('merchants')
-    .select('id, full_name, email, bot_active, plan')
-    .eq('user_id', currentUser.id)
-    .single();
+  var res = await sb.from('merchants').select('id,full_name,email,bot_active,plan').eq('user_id', currentUser.id).single();
+  var merchant = res.data;
 
   if (!merchant) {
-    // Merchant row not created yet (trigger may be async), retry once
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(function(r) { setTimeout(r, 1500); });
     return loadDash();
   }
 
   merchantId = merchant.id;
-
-  // Update UI
-  const name = merchant.full_name || currentUser.email.split('@')[0];
+  var name = merchant.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name-display').textContent = name;
   document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
 
-  // Load all data
-  await Promise.all([
-    loadStats(merchant),
-    renderBotStatus(merchant.bot_active),
-    loadRules(),
-    loadLog(),
-    loadPageInfo(),
-  ]);
+  renderBotStatus(merchant.bot_active);
+  await loadStats();
+  await loadRules();
+  await loadLog();
+  await loadPageInfo();
 }
 
-async function loadStats(merchant) {
-  const { data: stats } = await sb
-    .from('merchant_stats')
-    .select('total_replied, today_replied')
-    .eq('merchant_id', merchantId)
-    .single();
-
-  const { data: rules } = await sb
-    .from('reply_rules')
-    .select('id', { count: 'exact' })
-    .eq('merchant_id', merchantId)
-    .eq('is_active', true);
-
-  document.getElementById('stat-replied').textContent = stats?.total_replied ?? 0;
-  document.getElementById('stat-today').textContent = stats?.today_replied ?? 0;
-  document.getElementById('stat-rules').textContent = rules?.length ?? 0;
+async function loadStats() {
+  var sr = await sb.from('merchant_stats').select('total_replied,today_replied').eq('merchant_id', merchantId).single();
+  var rr = await sb.from('reply_rules').select('id').eq('merchant_id', merchantId).eq('is_active', true);
+  document.getElementById('stat-replied').textContent = (sr.data && sr.data.total_replied) || 0;
+  document.getElementById('stat-today').textContent = (sr.data && sr.data.today_replied) || 0;
+  document.getElementById('stat-rules').textContent = (rr.data && rr.data.length) || 0;
 }
 
 function renderBotStatus(isOn) {
   document.getElementById('bot-toggle').checked = isOn;
-  document.getElementById('status-dot').className = 'status-dot ' + (isOn ? 'on' : 'off');
+  document.getElementById('status-dot').className = 'sdot ' + (isOn ? 'on' : 'off');
   document.getElementById('status-name').textContent = isOn ? 'Bot is active' : 'Bot is offline';
   document.getElementById('status-sub').textContent = isOn ? 'Auto-replies are enabled' : 'Toggle to activate auto-replies';
 }
 
 async function toggleBot(el) {
-  const isOn = el.checked;
-  renderBotStatus(isOn);
-  await sb.from('merchants').update({ bot_active: isOn }).eq('id', merchantId);
+  renderBotStatus(el.checked);
+  await sb.from('merchants').update({ bot_active: el.checked }).eq('id', merchantId);
 }
 
 async function loadRules() {
-  const { data: rules } = await sb
-    .from('reply_rules')
-    .select('id, trigger_keys, reply_text, is_active')
-    .eq('merchant_id', merchantId)
-    .eq('is_active', true)
-    .order('sort_order');
-
-  const list = document.getElementById('rules-list');
-  if (!rules || !rules.length) {
-    list.innerHTML = '<div class="empty-state">No rules yet. Add your first rule above ↑</div>'; return;
-  }
-  list.innerHTML = rules.map(r => `
-    <div class="rule-card">
-      <div class="rule-body">
-        <div class="rule-trigger">${esc(r.trigger_keys)}</div>
-        <div class="rule-reply">${esc(r.reply_text)}</div>
-      </div>
-      <button class="rule-del" onclick="deleteRule('${r.id}')">🗑</button>
-    </div>`).join('');
+  var res = await sb.from('reply_rules').select('id,trigger_keys,reply_text').eq('merchant_id', merchantId).eq('is_active', true).order('sort_order');
+  var rules = res.data || [];
+  var list = document.getElementById('rules-list');
+  if (!rules.length) { list.innerHTML = '<div class="empty">No rules yet. Add your first rule above.</div>'; return; }
+  list.innerHTML = rules.map(function(r) {
+    return '<div class="rc"><div class="rb"><div class="rtrig">' + esc(r.trigger_keys) + '</div><div class="rrep">' + esc(r.reply_text) + '</div></div><button class="rdel" onclick="deleteRule(\'' + r.id + '\')">🗑</button></div>';
+  }).join('');
   document.getElementById('stat-rules').textContent = rules.length;
 }
 
 function toggleAddForm() {
-  const f = document.getElementById('add-form');
+  var f = document.getElementById('add-form');
   f.classList.toggle('open');
   if (f.classList.contains('open')) document.getElementById('new-trigger').focus();
 }
 
 async function saveRule() {
-  const trigger = document.getElementById('new-trigger').value.trim();
-  const reply = document.getElementById('new-reply').value.trim();
+  var trigger = document.getElementById('new-trigger').value.trim();
+  var reply = document.getElementById('new-reply').value.trim();
   if (!trigger || !reply) { alert('Please enter both a trigger and a reply.'); return; }
-  const btn = document.getElementById('save-rule-btn');
+  var btn = document.getElementById('save-rule-btn');
   btn.disabled = true; btn.textContent = 'Saving...';
-  await sb.from('reply_rules').insert({
-    merchant_id: merchantId,
-    trigger_keys: trigger,
-    reply_text: reply,
-    is_active: true,
-    sort_order: Date.now(),
-  });
+  await sb.from('reply_rules').insert({ merchant_id: merchantId, trigger_keys: trigger, reply_text: reply, is_active: true, sort_order: Date.now() });
   btn.disabled = false; btn.textContent = 'Save rule';
   document.getElementById('new-trigger').value = '';
   document.getElementById('new-reply').value = '';
@@ -641,64 +438,50 @@ async function deleteRule(id) {
 }
 
 async function loadLog() {
-  const { data: log } = await sb
-    .from('activity_log')
-    .select('sender_psid, incoming_text, reply_text, reply_sent, created_at')
-    .eq('merchant_id', merchantId)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  var res = await sb.from('activity_log').select('sender_psid,incoming_text,reply_text,reply_sent,created_at').eq('merchant_id', merchantId).order('created_at', { ascending: false }).limit(50);
+  var log = res.data || [];
 
-  const renderLog = (items, containerId, limit) => {
-    const el = document.getElementById(containerId);
-    const slice = limit ? items.slice(0, limit) : items;
-    if (!slice || !slice.length) { el.innerHTML = '<div class="empty-state">No activity yet.</div>'; return; }
-    el.innerHTML = slice.map(l => `
-      <div class="log-item">
-        <div class="log-time">${new Date(l.created_at).toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'})}</div>
-        <div class="log-body">
-          <div class="log-sender">Customer (${l.sender_psid?.slice(-6) ?? '......'})</div>
-          <div class="log-text">${esc(l.incoming_text || '')}</div>
-        </div>
-        ${l.reply_sent ? '<div class="log-badge replied">Replied</div>' : '<div class="log-badge missed">No match</div>'}
-      </div>`).join('');
-  };
+  function renderLogItems(items, containerId, limit) {
+    var el = document.getElementById(containerId);
+    var slice = limit ? items.slice(0, limit) : items;
+    if (!slice.length) { el.innerHTML = '<div class="empty">No activity yet.</div>'; return; }
+    el.innerHTML = slice.map(function(l) {
+      var t = new Date(l.created_at).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit' });
+      var badge = l.reply_sent ? '<div class="lbadge replied">Replied</div>' : '<div class="lbadge missed">No match</div>';
+      return '<div class="li"><div class="ltime">' + t + '</div><div class="lbody"><div class="lsend">Customer</div><div class="ltxt">' + esc(l.incoming_text || '') + '</div></div>' + badge + '</div>';
+    }).join('');
+  }
 
-  renderLog(log || [], 'log-list');
-  renderLog(log || [], 'overview-log', 5);
+  renderLogItems(log, 'log-list');
+  renderLogItems(log, 'overview-log', 5);
 }
 
 async function loadPageInfo() {
-  const { data: page } = await sb
-    .from('facebook_pages')
-    .select('page_name, is_active')
-    .eq('merchant_id', merchantId)
-    .single();
-
-  const badge = document.getElementById('page-badge');
-  const nameEl = document.getElementById('page-name-display');
+  var res = await sb.from('facebook_pages').select('page_name,is_active').eq('merchant_id', merchantId).single();
+  var page = res.data;
+  var badge = document.getElementById('page-badge');
+  var nameEl = document.getElementById('page-name-display');
   if (page) {
-    badge.textContent = '● Connected';
-    badge.style.background = 'rgba(34,197,94,0.1)';
+    badge.textContent = 'Connected';
     nameEl.textContent = page.page_name || 'Your Page';
   } else {
-    badge.textContent = '○ Not connected';
-    badge.style.background = 'rgba(239,68,68,0.1)';
+    badge.textContent = 'Not connected';
+    badge.style.background = 'rgba(239,68,68,.1)';
     badge.style.color = '#FCA5A5';
     nameEl.textContent = 'No page connected yet';
   }
 }
 
 function switchPage(page, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pg').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nvi').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
   btn.classList.add('active');
   if (page === 'log') loadLog();
 }
 
 function copyWebhook() {
-  navigator.clipboard.writeText(document.getElementById('webhook-url-display').textContent)
-    .then(() => alert('Webhook URL copied!'));
+  navigator.clipboard.writeText('https://auto-reply-bot-jeffrey-production.up.railway.app/webhook').then(function() { alert('Copied!'); });
 }
 
 function esc(t) {
