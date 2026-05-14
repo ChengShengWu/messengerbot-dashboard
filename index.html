@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MessengerBot — Auto Reply Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0A0A0F;
+  --surface: #111118;
+  --surface2: #18181F;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #4F6EF7;
+  --accent2: #7C3AED;
+  --green: #22C55E;
+  --red: #EF4444;
+  --amber: #F59E0B;
+  --text: #F0F0FF;
+  --muted: #6B6B80;
+  --muted2: #9B9BAA;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+input, textarea, select, button { font-family: var(--font-body); }
+
+/* ── AUTH SCREENS ── */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.auth-screen::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(79,110,247,0.12) 0%, transparent 70%);
+  top: -200px; left: -200px;
+  pointer-events: none;
+}
+.auth-screen::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  pointer-events: none;
+}
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 2.5rem;
+  position: relative;
+  z-index: 1;
+}
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+.auth-logo-icon {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.auth-logo-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.auth-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+.auth-sub {
+  font-size: 14px;
+  color: var(--muted2);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+.field { margin-bottom: 1rem; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--accent); }
+.field input::placeholder { color: var(--muted); }
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.auth-switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 13px;
+  color: var(--muted2);
+}
+.auth-switch button {
+  background: none; border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+}
+.err-msg {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #FCA5A5;
+  margin-bottom: 1rem;
+  display: none;
+}
+
+/* ── DASHBOARD ── */
+.dash { display: none; min-height: 100vh; }
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+.sidebar-logo {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 0.5rem;
+  margin-bottom: 2rem;
+}
+.sidebar-logo-icon {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+.sidebar-logo-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.nav-section {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0 0.5rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none; background: none;
+  width: 100%; text-align: left;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(79,110,247,0.15); color: var(--accent); }
+.nav-item .icon { font-size: 16px; width: 18px; text-align: center; }
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+}
+.user-avatar {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.user-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.signout-btn {
+  background: none; border: none;
+  color: var(--muted);
+  cursor: pointer; font-size: 14px;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.signout-btn:hover { color: var(--red); }
+
+/* ── MAIN CONTENT ── */
+.main { margin-left: 220px; padding: 2rem; min-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; }
+.page-header { margin-bottom: 2rem; }
+.page-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+.page-sub { font-size: 14px; color: var(--muted2); }
+
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+}
+.stat-label { font-size: 12px; color: var(--muted2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.stat-value { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1; }
+.stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* Bot status */
+.bot-status-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.bot-status-left { display: flex; align-items: center; gap: 12px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+.status-dot.off { background: var(--muted); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.status-name { font-weight: 600; font-size: 15px; }
+.status-sub { font-size: 12px; color: var(--muted2); margin-top: 2px; }
+
+/* Toggle */
+.toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute; inset: 0;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+.toggle input:checked ~ .toggle-track { background: var(--green); border-color: var(--green); }
+.toggle-thumb {
+  position: absolute;
+  width: 18px; height: 18px;
+  background: white;
+  border-radius: 50%;
+  top: 3px; left: 3px;
+  transition: transform 0.2s;
+  pointer-events: none;
+}
+.toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+/* Rules */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.btn-add {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: rgba(79,110,247,0.15);
+  border: 1px solid rgba(79,110,247,0.3);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-add:hover { background: rgba(79,110,247,0.25); }
+.rule-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.rule-body { flex: 1; min-width: 0; }
+.rule-trigger {
+  display: inline-block;
+  background: rgba(79,110,247,0.1);
+  border: 1px solid rgba(79,110,247,0.2);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #93A8FF;
+  margin-bottom: 6px;
+}
+.rule-reply { font-size: 13px; color: var(--muted2); line-height: 1.5; }
+.rule-del {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.rule-del:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: var(--muted);
+  font-size: 14px;
+  background: var(--surface);
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius);
+}
+
+/* Add rule form */
+.add-form {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  display: none;
+}
+.add-form.open { display: block; }
+.form-row { display: flex; gap: 8px; margin-top: 0.75rem; }
+.btn-save {
+  padding: 9px 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: var(--radius-sm);
+  color: white; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.btn-cancel {
+  padding: 9px 18px;
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--muted2); font-size: 13px;
+  cursor: pointer;
+}
+.field textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.15s;
+  line-height: 1.5;
+}
+.field textarea:focus { border-color: var(--accent); }
+
+/* Page setup */
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+.setup-card h3 { font-family: var(--font-display); font-size: 15px; font-weight: 600; margin-bottom: 0.25rem; }
+.setup-card p { font-size: 13px; color: var(--muted2); margin-bottom: 1.25rem; line-height: 1.6; }
+.connected-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px; font-weight: 600;
+  color: var(--green);
+  margin-left: 10px;
+}
+.webhook-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--muted2);
+  word-break: break-all;
+  line-height: 1.6;
+  margin-top: 0.75rem;
+}
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--muted2);
+  font-size: 12px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.15s;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Activity log */
+.log-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.5rem;
+  display: flex; gap: 12px;
+}
+.log-time { font-size: 11px; color: var(--muted); font-family: monospace; flex-shrink: 0; margin-top: 2px; }
+.log-body { flex: 1; }
+.log-sender { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.log-text { font-size: 13px; color: var(--muted2); }
+.log-badge {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+}
+.log-badge.replied { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+.log-badge.missed { background: rgba(107,107,128,0.1); color: var(--muted2); border: 1px solid var(--border); }
+
+/* Pricing */
+.plan-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+.plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  position: relative;
+}
+.plan-card.featured { border-color: var(--accent); background: rgba(79,110,247,0.05); }
+.plan-badge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white; font-size: 10px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.plan-name { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.plan-price { font-family: var(--font-display); font-size: 30px; font-weight: 800; margin: 0.75rem 0; }
+.plan-price span { font-size: 14px; font-weight: 400; color: var(--muted2); }
+.plan-features { list-style: none; margin-bottom: 1.25rem; }
+.plan-features li { font-size: 13px; color: var(--muted2); padding: 4px 0; display: flex; align-items: center; gap: 7px; }
+.plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; font-size: 12px; }
+.btn-plan {
+  width: 100%; padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-plan-outline { background: none; border: 1px solid var(--border2); color: var(--text); }
+.btn-plan-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-plan-filled { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; color: white; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">💬</div>
+      <div class="auth-logo-name">MessengerBot</div>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to manage your auto-reply bot</div>
+    <div class="err-msg" id="login-err">Invalid email or password.</div>
+    <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+    <button class="btn-primary" onclick="doLogin()">Sign in</button>
+    <div class="auth-switch">No account? <button onclick="go('signup')">Create one free</button></div>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div id="screen-signup" class="auth-screen" style="display:none">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">💬</div>
+      <div class="auth-logo-name">MessengerBot</div>
+    </div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Start automating your Messenger replies today</div>
+    <div class="err-msg" id="reg-err">Please fill in all fields.</div>
+    <div class="field"><label>Full name</label><input type="text" id="reg-name" placeholder="Jeffrey Tan"></div>
+    <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min. 6 characters"></div>
+    <button class="btn-primary" onclick="doRegister()">Create account</button>
+    <div class="auth-switch">Already have an account? <button onclick="go('login')">Sign in</button></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dash" class="dash">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">💬</div>
+      <div class="sidebar-logo-name">MessengerBot</div>
+    </div>
+    <div class="nav-section">Main</div>
+    <button class="nav-item active" onclick="switchPage('overview',this)"><span class="icon">⚡</span> Overview</button>
+    <button class="nav-item" onclick="switchPage('rules',this)"><span class="icon">📋</span> Reply Rules</button>
+    <button class="nav-item" onclick="switchPage('log',this)"><span class="icon">📊</span> Activity Log</button>
+    <div class="nav-section">Settings</div>
+    <button class="nav-item" onclick="switchPage('setup',this)"><span class="icon">🔌</span> Page Setup</button>
+    <button class="nav-item" onclick="switchPage('billing',this)"><span class="icon">💳</span> Billing</button>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">J</div>
+        <div class="user-name" id="user-name">Jeffrey</div>
+        <button class="signout-btn" onclick="doLogout()" title="Sign out">↪</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- OVERVIEW PAGE -->
+    <div id="page-overview" class="page active">
+      <div class="page-header">
+        <div class="page-title">Overview</div>
+        <div class="page-sub">Your bot's performance at a glance</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Replied</div>
+          <div class="stat-value" id="stat-replied">0</div>
+          <div class="stat-sub">All time</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Today</div>
+          <div class="stat-value" id="stat-today">0</div>
+          <div class="stat-sub">Replies sent today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Rules</div>
+          <div class="stat-value" id="stat-rules">0</div>
+          <div class="stat-sub">Auto-reply triggers</div>
+        </div>
+      </div>
+      <div class="bot-status-card">
+        <div class="bot-status-left">
+          <div class="status-dot" id="status-dot"></div>
+          <div>
+            <div class="status-name" id="status-name">Bot is offline</div>
+            <div class="status-sub" id="status-sub">Toggle to activate auto-replies</div>
+          </div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="bot-toggle" onchange="toggleBot(this)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Recent activity</div>
+      </div>
+      <div id="overview-log"></div>
+    </div>
+
+    <!-- RULES PAGE -->
+    <div id="page-rules" class="page">
+      <div class="page-header">
+        <div class="page-title">Reply Rules</div>
+        <div class="page-sub">Set keywords and auto-reply messages</div>
+      </div>
+      <div class="section-header">
+        <div class="section-title">Your rules</div>
+        <button class="btn-add" onclick="toggleAddForm()">＋ Add rule</button>
+      </div>
+      <div class="add-form" id="add-form">
+        <div class="field">
+          <label>Trigger keywords <span style="font-weight:400;text-transform:none;letter-spacing:0">(comma-separated, or * for any message)</span></label>
+          <input type="text" id="new-trigger" placeholder="price, cost, how much">
+        </div>
+        <div class="field">
+          <label>Auto-reply message</label>
+          <textarea id="new-reply" placeholder="Our prices start from RM 15. Visit our menu for full details!"></textarea>
+        </div>
+        <div class="form-row">
+          <button class="btn-save" onclick="saveRule()">Save rule</button>
+          <button class="btn-cancel" onclick="toggleAddForm()">Cancel</button>
+        </div>
+      </div>
+      <div id="rules-list"></div>
+    </div>
+
+    <!-- ACTIVITY LOG PAGE -->
+    <div id="page-log" class="page">
+      <div class="page-header">
+        <div class="page-title">Activity Log</div>
+        <div class="page-sub">Every message received and reply sent</div>
+      </div>
+      <div id="log-list"></div>
+    </div>
+
+    <!-- PAGE SETUP -->
+    <div id="page-setup" class="page">
+      <div class="page-header">
+        <div class="page-title">Page Setup</div>
+        <div class="page-sub">Connect your Facebook page to activate the bot</div>
+      </div>
+      <div class="setup-card">
+        <h3>Facebook page <span class="connected-badge">● Connected</span></h3>
+        <p>Your Facebook page is connected and the bot is ready. To update your page access token or connect a different page, update it in your Supabase database.</p>
+        <div style="font-size:13px;color:var(--muted2)">Connected page: <strong style="color:var(--text)">Meal Restaurant 食咖啡館餐廳</strong></div>
+      </div>
+      <div class="setup-card">
+        <h3>Webhook endpoint</h3>
+        <p>This is the URL you entered in Meta Developer → Messenger API Settings. Facebook sends all messages here.</p>
+        <div class="webhook-box">https://auto-reply-bot-jeffrey-production.up.railway.app/webhook</div>
+        <button class="copy-btn" onclick="copyWebhook()">⎘ Copy URL</button>
+      </div>
+      <div class="setup-card">
+        <h3>Setup guide</h3>
+        <p style="margin-bottom:0.5rem">Completed steps:</p>
+        <div style="font-size:13px;line-height:2;color:var(--muted2)">
+          ✅ Supabase database deployed<br>
+          ✅ Railway webhook server live<br>
+          ✅ Meta Developer App created<br>
+          ✅ Facebook page connected<br>
+          ✅ Webhook verified<br>
+          ✅ Messages subscription active
+        </div>
+      </div>
+    </div>
+
+    <!-- BILLING -->
+    <div id="page-billing" class="page">
+      <div class="page-header">
+        <div class="page-title">Billing</div>
+        <div class="page-sub">Choose a plan that grows with your business</div>
+      </div>
+      <div class="plan-cards">
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">RM 0 <span>/month</span></div>
+          <ul class="plan-features">
+            <li>1 Facebook page</li>
+            <li>5 reply rules</li>
+            <li>100 replies/month</li>
+            <li>Activity log (7 days)</li>
+          </ul>
+          <button class="btn-plan btn-plan-outline">Current plan</button>
+        </div>
+        <div class="plan-card featured">
+          <div class="plan-badge">Most Popular</div>
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">RM 49 <span>/month</span></div>
+          <ul class="plan-features">
+            <li>3 Facebook pages</li>
+            <li>Unlimited reply rules</li>
+            <li>Unlimited replies</li>
+            <li>AI-powered replies</li>
+            <li>Activity log (30 days)</li>
+          </ul>
+          <button class="btn-plan btn-plan-filled">Upgrade →</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">RM 99 <span>/month</span></div>
+          <ul class="plan-features">
+            <li>Unlimited pages</li>
+            <li>Unlimited everything</li>
+            <li>Priority AI replies</li>
+            <li>Analytics dashboard</li>
+            <li>White-label option</li>
+            <li>Priority support</li>
+          </ul>
+          <button class="btn-plan btn-plan-outline">Upgrade →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Simple local auth (replace with Supabase Auth calls in production) ──
+const USERS_KEY = 'msgbot_users';
+const SESSION_KEY = 'msgbot_session';
+
+function getUsers(){try{return JSON.parse(localStorage.getItem(USERS_KEY)||'[]')}catch{return[]}}
+function saveUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u))}
+function getSession(){try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}catch{return null}}
+function saveSession(u){sessionStorage.setItem(SESSION_KEY,JSON.stringify(u))}
+function clearSession(){sessionStorage.removeItem(SESSION_KEY)}
+function getUserData(email){try{return JSON.parse(localStorage.getItem('msgbot_data_'+email)||'null')}catch{return null}||{rules:[],log:[],botOn:false,replied:0,today:0}}
+function saveUserData(email,d){localStorage.setItem('msgbot_data_'+email,JSON.stringify(d))}
+
+let currentUser=null, userData=null;
+
+function go(screen){
+  document.querySelectorAll('.auth-screen,.dash').forEach(el=>{
+    el.style.display='none';
+  });
+  const el=document.getElementById('screen-'+screen);
+  if(el){el.style.display=(screen==='dash'?'block':'flex');}
+}
+
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-err');
+  const users=getUsers();
+  const user=users.find(u=>u.email===email&&u.password===pass);
+  if(!user){err.style.display='block';return;}
+  err.style.display='none';
+  saveSession(user);currentUser=user;
+  loadDash();
+}
+
+function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const pass=document.getElementById('reg-pass').value;
+  const err=document.getElementById('reg-err');
+  if(!name||!email||pass.length<6){err.textContent='Please fill in all fields (password min 6 chars).';err.style.display='block';return;}
+  const users=getUsers();
+  if(users.find(u=>u.email===email)){err.textContent='Email already registered.';err.style.display='block';return;}
+  err.style.display='none';
+  const user={name,email,password:pass};
+  users.push(user);saveUsers(users);saveSession(user);currentUser=user;
+  loadDash();
+}
+
+function doLogout(){clearSession();currentUser=null;userData=null;go('login');}
+
+function loadDash(){
+  userData=getUserData(currentUser.email);
+  document.getElementById('user-name').textContent=currentUser.name;
+  document.getElementById('user-avatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  renderAll();
+  go('dash');
+}
+
+function save(){saveUserData(currentUser.email,userData);}
+
+function renderAll(){renderStats();renderBotStatus();renderRules();renderLog();renderOverviewLog();}
+
+function renderStats(){
+  document.getElementById('stat-replied').textContent=userData.replied||0;
+  document.getElementById('stat-today').textContent=userData.today||0;
+  document.getElementById('stat-rules').textContent=(userData.rules||[]).length;
+}
+
+function renderBotStatus(){
+  const on=userData.botOn;
+  document.getElementById('bot-toggle').checked=on;
+  document.getElementById('status-dot').className='status-dot '+(on?'on':'off');
+  document.getElementById('status-name').textContent=on?'Bot is active':'Bot is offline';
+  document.getElementById('status-sub').textContent=on?'Auto-replies are enabled':'Toggle to activate auto-replies';
+}
+
+function toggleBot(el){
+  userData.botOn=el.checked;
+  save();renderBotStatus();
+  if(el.checked)addLog('System','Bot activated','system');
+}
+
+function renderRules(){
+  const list=document.getElementById('rules-list');
+  const rules=userData.rules||[];
+  if(!rules.length){list.innerHTML='<div class="empty-state">No rules yet. Add your first rule above ↑</div>';return;}
+  list.innerHTML=rules.map((r,i)=>`
+    <div class="rule-card">
+      <div class="rule-body">
+        <div class="rule-trigger">${esc(r.trigger)}</div>
+        <div class="rule-reply">${esc(r.reply)}</div>
+      </div>
+      <button class="rule-del" onclick="deleteRule(${i})">🗑</button>
+    </div>`).join('');
+}
+
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function toggleAddForm(){
+  const f=document.getElementById('add-form');
+  f.classList.toggle('open');
+  if(f.classList.contains('open'))document.getElementById('new-trigger').focus();
+}
+
+function saveRule(){
+  const trigger=document.getElementById('new-trigger').value.trim();
+  const reply=document.getElementById('new-reply').value.trim();
+  if(!trigger||!reply){alert('Please enter both a trigger and a reply.');return;}
+  userData.rules=userData.rules||[];
+  userData.rules.push({trigger,reply});
+  save();renderRules();renderStats();
+  document.getElementById('new-trigger').value='';
+  document.getElementById('new-reply').value='';
+  document.getElementById('add-form').classList.remove('open');
+}
+
+function deleteRule(i){userData.rules.splice(i,1);save();renderRules();renderStats();}
+
+function addLog(sender,text,type){
+  const now=new Date();
+  userData.log=userData.log||[];
+  userData.log.unshift({sender,text,type,time:now.toLocaleTimeString('en-MY',{hour:'2-digit',minute:'2-digit'})});
+  if(userData.log.length>100)userData.log.pop();
+  if(type==='reply'){userData.replied=(userData.replied||0)+1;userData.today=(userData.today||0)+1;}
+  save();renderLog();renderOverviewLog();renderStats();
+}
+
+function renderLog(){
+  const list=document.getElementById('log-list');
+  const log=userData.log||[];
+  if(!log.length){list.innerHTML='<div class="empty-state">No activity yet. Messages will appear here once your bot is running.</div>';return;}
+  list.innerHTML=log.map(l=>`
+    <div class="log-item">
+      <div class="log-time">${l.time}</div>
+      <div class="log-body">
+        <div class="log-sender">${esc(l.sender)}</div>
+        <div class="log-text">${esc(l.text)}</div>
+      </div>
+      ${l.type==='reply'?'<div class="log-badge replied">Replied</div>':l.type==='system'?'':'<div class="log-badge missed">No match</div>'}
+    </div>`).join('');
+}
+
+function renderOverviewLog(){
+  const list=document.getElementById('overview-log');
+  const log=(userData.log||[]).slice(0,5);
+  if(!log.length){list.innerHTML='<div class="empty-state">No activity yet.</div>';return;}
+  list.innerHTML=log.map(l=>`
+    <div class="log-item">
+      <div class="log-time">${l.time}</div>
+      <div class="log-body">
+        <div class="log-sender">${esc(l.sender)}</div>
+        <div class="log-text">${esc(l.text)}</div>
+      </div>
+      ${l.type==='reply'?'<div class="log-badge replied">Replied</div>':''}
+    </div>`).join('');
+}
+
+function switchPage(page,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  btn.classList.add('active');
+}
+
+function copyWebhook(){
+  navigator.clipboard.writeText('https://auto-reply-bot-jeffrey-production.up.railway.app/webhook')
+    .then(()=>alert('Webhook URL copied!'));
+}
+
+// Restore session on load
+(function(){
+  const sess=getSession();
+  if(sess){currentUser=sess;loadDash();}
+})();
+</script>
+</body>
+</html>
